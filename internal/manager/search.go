@@ -21,6 +21,7 @@ type Package struct {
 	URL          string
 	Maintainer   string
 	LastModified int64
+	RequiredBy	string
 }
 
 func Search(query string) ([]Package, error) {
@@ -162,6 +163,7 @@ func parsePacmanOutput(raw string, query string) []Package {
 
 				ver := parts[1]
 				desc := ""
+				reqby := checkRequiredBy(name)
 				if i+1 < len(lines) {
 					desc = strings.TrimSpace(lines[i+1])
 					i++
@@ -173,11 +175,43 @@ func parsePacmanOutput(raw string, query string) []Package {
 					Description: desc,
 					IsAUR:       false,
 					Maintainer:  "Arch Linux",
+					RequiredBy:  reqby,
 				})
 			}
 		}
 	}
 	return pkgs
+}
+
+func checkRequiredBy(pkg string) string {
+	out, err := exec.Command("pacman", "-Qi", pkg).Output()
+	if err != nil {
+		return "N/A"
+	}
+
+	res := string(out)
+
+	lines := strings.Split(res, "\n")
+	result := make(map[string]string)
+
+	for _, line := range lines {
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) < 2 {
+			continue
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		result[key] = value
+	}
+
+	reqby := ""
+	for k, v := range result {
+		if strings.TrimRight(k, "\n") == "Required By" {
+			reqby = v
+		}
+	}
+	return reqby
 }
 
 func checkInstalledStatus(pkgs []Package) {

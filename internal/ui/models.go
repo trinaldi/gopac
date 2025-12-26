@@ -284,6 +284,9 @@ func renderDescription(p manager.Package) string {
 		dateStr = time.Unix(p.LastModified, 0).Format("2006-01-02")
 	}
 
+
+	reqby := p.RequiredBy
+
 	maintainer := p.Maintainer
 	if maintainer == "" {
 		maintainer = "None"
@@ -307,6 +310,10 @@ func renderDescription(p manager.Package) string {
 		row("Votes", fmt.Sprintf("%d", p.Votes)),
 		row("Updated", dateStr),
 		row("URL", LinkStyle.Render(p.URL)),
+	}
+
+	if p.IsInstalled {
+		details = append(details, row("Required By",reqby))
 	}
 
 	descBlock := lipgloss.NewStyle().
